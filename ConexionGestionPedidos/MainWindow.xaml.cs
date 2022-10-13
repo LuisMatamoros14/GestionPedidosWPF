@@ -34,43 +34,164 @@ namespace ConexionGestionPedidos
             ConnectionSql = new SqlConnection(Connection);
 
             MuestraClientes();
+            MuestraTodosPedidos();
         }
 
         private void MuestraClientes()
         {
-            string query = "SELECT * FROM Clientes";
-            SqlDataAdapter AdapterSql = new SqlDataAdapter(query,ConnectionSql);
-
-            using (AdapterSql)
+            try
             {
-                DataTable ClientesTabla = new DataTable();
-                AdapterSql.Fill(ClientesTabla);
-                ListaClientes.DisplayMemberPath = "Nombre";
-                ListaClientes.SelectedValuePath = "Id";
-                ListaClientes.ItemsSource = ClientesTabla.DefaultView;
+                string query = "SELECT * FROM Clientes";
+                SqlDataAdapter AdapterSql = new SqlDataAdapter(query, ConnectionSql);
+
+                using (AdapterSql)
+                {
+                    DataTable ClientesTabla = new DataTable();
+                    AdapterSql.Fill(ClientesTabla);
+                    ListaClientes.DisplayMemberPath = "Nombre";
+                    ListaClientes.SelectedValuePath = "Id";
+                    ListaClientes.ItemsSource = ClientesTabla.DefaultView;
+                }
             }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.ToString());
+            }
+            
+            
         }
 
         private void MuestraPedidos()
         {
-            string query = "SELECT * FROM Pedidos P INNER JOIN Clientes C ON C.Id = P.CodigoCliente WHERE C.Id=@ClienteId";
-            SqlCommand CommandSql = new SqlCommand(query,ConnectionSql);
-            SqlDataAdapter AdapterSql = new SqlDataAdapter(CommandSql);
-
-            using (AdapterSql)
+            try
             {
-                CommandSql.Parameters.AddWithValue("@ClienteId",ListaClientes.SelectedValue);
-                DataTable PedidosTabla = new DataTable();
-                AdapterSql.Fill(PedidosTabla);
-                PedidosCliente.DisplayMemberPath = "FechaPedido";
-                PedidosCliente.SelectedValuePath = "Id";
-                PedidosCliente.ItemsSource = PedidosTabla.DefaultView;
+                string query = "SELECT * FROM Pedidos P INNER JOIN Clientes C ON C.Id = P.CodigoCliente WHERE C.Id=@ClienteId";
+                SqlCommand CommandSql = new SqlCommand(query, ConnectionSql);
+                SqlDataAdapter AdapterSql = new SqlDataAdapter(CommandSql);
+
+                using (AdapterSql)
+                {
+                    CommandSql.Parameters.AddWithValue("@ClienteId", ListaClientes.SelectedValue);
+                    DataTable PedidosTabla = new DataTable();
+                    AdapterSql.Fill(PedidosTabla);
+                    PedidosCliente.DisplayMemberPath = "FechaPedido";
+                    PedidosCliente.SelectedValuePath = "Id";
+                    PedidosCliente.ItemsSource = PedidosTabla.DefaultView;
+                }
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.ToString());
             }
         }
 
-        private void ListaClientes_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void MuestraTodosPedidos()
+        {
+            try
+            {
+                string query = "SELECT *,CONCAT(CodigoCliente,' ',FechaPedido, ' ',FormaPago) AS PedidosCompletos FROM Pedidos ";
+                SqlDataAdapter AdapterSql = new SqlDataAdapter(query, ConnectionSql);
+
+                using (AdapterSql)
+                {
+                    DataTable TodosPedidosTabla = new DataTable();
+                    AdapterSql.Fill(TodosPedidosTabla);
+                    TodosPedidos.DisplayMemberPath = "PedidosCompletos";
+                    TodosPedidos.SelectedValuePath = "Id";
+                    TodosPedidos.ItemsSource = TodosPedidosTabla.DefaultView;
+                }
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.ToString());
+            }
+
+        }
+
+        //private void ListaClientes_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        //{
+        //    MuestraPedidos();
+        //}
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            //MessageBox.Show(TodosPedidos.SelectedValue.ToString());
+
+            string query = "DELETE FROM Pedidos WHERE  Id=@PedidoId";
+            SqlCommand CommandSql = new SqlCommand(query,ConnectionSql);
+            
+            ConnectionSql.Open();
+            CommandSql.Parameters.AddWithValue("@PedidoId", TodosPedidos.SelectedValue);
+            CommandSql.ExecuteNonQuery();
+            ConnectionSql.Close();
+
+            MuestraTodosPedidos();
+        }
+
+        private void Button_Click_1(object sender, RoutedEventArgs e)
+        {
+            string query = "INSERT INTO Clientes (Nombre) VALUES (@Nombre)";
+            SqlCommand CommandSql = new SqlCommand(query, ConnectionSql);
+
+            ConnectionSql.Open();
+            CommandSql.Parameters.AddWithValue("@Nombre", InsertarCliente.Text);
+            CommandSql.ExecuteNonQuery();
+            ConnectionSql.Close();
+
+            MuestraClientes();
+
+            InsertarCliente.Text = "";
+        }
+
+        private void Button_Click_2(object sender, RoutedEventArgs e)
+        {
+            string query = "DELETE FROM Clientes WHERE  Id=@ClienteId";
+            SqlCommand CommandSql = new SqlCommand(query, ConnectionSql);
+
+            ConnectionSql.Open();
+            CommandSql.Parameters.AddWithValue("@ClienteId", ListaClientes.SelectedValue);
+            CommandSql.ExecuteNonQuery();
+            ConnectionSql.Close();
+
+            MuestraClientes();
+        }
+
+        private void ListaClientes_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             MuestraPedidos();
+        }
+
+        private void Button_Click_3(object sender, RoutedEventArgs e)
+        {
+            ActualizarCliente VentanaActualizar = new ActualizarCliente((int)ListaClientes.SelectedValue);
+            VentanaActualizar.Show();
+            try
+            {
+                string query = "SELECT Nombre FROM Clientes WHERE Id=@ClienteId";
+                SqlCommand CommandSql = new SqlCommand(query, ConnectionSql);
+                SqlDataAdapter AdapterSql = new SqlDataAdapter(CommandSql);
+
+                using (AdapterSql)
+                {
+                    CommandSql.Parameters.AddWithValue("@ClienteId", ListaClientes.SelectedValue);
+                    DataTable ClientesTabla = new DataTable();
+                    AdapterSql.Fill(ClientesTabla);
+                    VentanaActualizar.TextBoxActualizar.Text= ClientesTabla.Rows[0]["Nombre"].ToString();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.ToString());
+            }
+
+            //VentanaActualizar.ShowDialog();
+
+            //MuestraClientes();
+        }
+
+        private void Window_Activated(object sender, EventArgs e)
+        {
+            MuestraClientes();
         }
     }
 }
